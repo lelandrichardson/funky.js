@@ -1,0 +1,60 @@
+@boardSize: 500px;
+@cellSize: 106px;
+
+html, body {
+    margin:0;
+    padding: 0;
+    background-color:#faf8ef;
+    font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+}
+
+.game-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-left: -(@boardSize / 2);
+    margin-top: -(@boardSize / 2);
+    width: @boardSize;
+    height: @boardSize;
+    background-color: #bbada0;
+    border-radius: 6px;
+}
+
+.cell {
+    background-color:#CCC0B3;
+    width: @cellSize;
+    height:@cellSize;
+    float:left;
+    margin: 15px 0 0 15px;
+    border-radius: 4px;
+    &::before {
+        font-size: 55px;
+        text-align: center;
+        font-weight: bold;
+        width: @cellSize;
+        line-height: @cellSize;
+        color: #776e65;
+        display: inline-block;
+    }
+}
+
+.v-cell(@background, @foreground, @fontSize, @number) {
+  background-color: @background;
+  color: @foreground;
+  &::before {
+    content: @number;
+    font-size: @fontSize;
+  }
+}
+
+.v2    { .v-cell(#eee4da, #776e65, 55px,    "2"); }
+.v4    { .v-cell(#ede0c8, #776e65, 55px,    "4"); }
+.v8    { .v-cell(#f2b179, #f9f6f2, 55px,    "8"); }
+.v16   { .v-cell(#f59563, #f9f6f2, 55px,   "16"); }
+.v32   { .v-cell(#f67c5f, #f9f6f2, 55px,   "32"); }
+.v64   { .v-cell(#f65e3b, #f9f6f2, 55px,   "64"); }
+.v128  { .v-cell(#edcf72, #f9f6f2, 45px,  "128"); }
+.v256  { .v-cell(#edcc61, #f9f6f2, 45px,  "256"); }
+.v512  { .v-cell(#edc850, #f9f6f2, 45px,  "512"); }
+.v1024 { .v-cell(#edc53f, #f9f6f2, 35px, "1024"); }
+.v2048 { .v-cell(#edc22e, #f9f6f2, 35px, "2048"); }
