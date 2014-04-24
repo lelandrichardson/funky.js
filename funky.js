@@ -276,13 +276,14 @@
             }
         },
 
-        foldl = curry(function(combine, base, list) {
+        foldl = function(combine, base, list) {
             //todo: use native method or for-loop here
-            each(function (element) {
-                base = combine(base, element);
-            }, list);
-            return base;
-        }),
+            return __reduce.call(list, combine, base);
+//            each(function (element) {
+//                base = combine(base, element);
+//            }, list);
+//            return base;
+        },
 
         foldr = curry(function(combine, base, list) {
             //todo: use native method or for-loop here
@@ -297,7 +298,7 @@
 
         nop = function(){},
 
-        sum = foldl(op["+"], 0),
+        sum = null, //foldl(op["+"], 0),
 
         max = function(list){
             return Math.max.apply(null, list);
@@ -316,10 +317,26 @@
 
 
 
-        // build an array that is the sequence/range of integers from a .. b
-        range = curry(function(a, b) {
 
-        }),
+        // build an array that is the sequence/range of integers from a .. b
+        range = function(start, stop, step) {
+            if (arguments.length <= 1) {
+                stop = start || 0;
+                start = 0;
+            }
+            step = arguments[2] || 1;
+
+            var length = Math.max(Math.ceil((stop - start) / step), 0);
+            var idx = 0;
+            var range = new Array(length);
+
+            while(idx < length) {
+                range[idx++] = start;
+                start += step;
+            }
+
+            return range;
+        },
 
 
         // existential functions
@@ -368,7 +385,8 @@
 
                 flip: flip,
 
-
+                each: each,
+                map: map,
                 first: first,
                 firstWhere: firstWhere,
                 filter: filter,
