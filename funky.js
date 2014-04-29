@@ -82,8 +82,10 @@
             args = args || [];
             holes = holes || [];
             return function(){
-                var argStart = args.length,
-                    holeStart = holes.length,
+                var _args = args.slice(0),
+                    _holes = holes.slice(0),
+                    argStart = _args.length,
+                    holeStart = _holes.length,
                     arg,
                     i;
                 for(i = 0; i < arguments.length; i++) {
@@ -91,21 +93,21 @@
                     if(arg === _){
                         if(holeStart){
                             holeStart--;
-                            holes.push(holes.shift()); // move the hole from beginning of array to end
+                            _holes.push(_holes.shift()); // move the hole from beginning of array to end
                         } else {
-                            holes.push(argStart + i); // the position of the hole.
+                            _holes.push(argStart + i); // the position of the hole.
                         }
                     } else if (holeStart) {
                         holeStart--;
-                        args.splice(holes.shift(), 0, arg); // insert this arg at the index of the hole
+                        _args.splice(_holes.shift(), 0, arg); // insert this arg at the index of the hole
                     } else {
-                        args.push(arg);
+                        _args.push(arg);
                     }
                 }
-                if(args.length < length) {
-                    return curry.call(this, fn, length, args, holes);
+                if(_args.length < length) {
+                    return curry.call(this, fn, length, _args, _holes);
                 } else {
-                    return fn.apply(this, args);
+                    return fn.apply(this, _args);
                 }
             }
         },
@@ -202,7 +204,7 @@
         },
 
         reverse = function (list){
-            //todo
+            return __reverse.call(list);
         },
 
         flip = function (fn){
@@ -213,9 +215,20 @@
 
         },
 
-        firstWhere = function (fn, list){
+        firstWhere = curry(function (fn, list){
+            var index = -1,
+                length = list ? list.length : 0;
+            while (++index < length && !fn(list[index], index, list)) {}
+            return list[index];
+        }),
 
-        },
+        some = curry(function(fn, list){
+            return __some.call(list, fn);
+        }),
+
+        every = curry(function(fn, list){
+            return __every.call(list, fn);
+        }),
 
         until = curry(function (fn, list){
 
@@ -253,10 +266,21 @@
             return __filter.call(list, fn);
         }),
 
+        count = function(list){
+            return list.length;
+        },
+        countWhere = curry(function(fn, list){
+            return count(filter(fn,list));
+        }),
+
         //TODO: some OrderBy helpers, common predicates...
         sort = curry(function(pred, list){
             return __sort.call(list, comparator(pred));
         }),
+
+        flatten = function(list){
+            return __concat.apply([],list);
+        },
 
 
 
@@ -276,14 +300,14 @@
             }
         },
 
-        foldl = function(combine, base, list) {
+        foldl = curry(function(combine, base, list) {
             //todo: use native method or for-loop here
             return __reduce.call(list, combine, base);
 //            each(function (element) {
 //                base = combine(base, element);
 //            }, list);
 //            return base;
-        },
+        }),
 
         foldr = curry(function(combine, base, list) {
             //todo: use native method or for-loop here
@@ -298,9 +322,11 @@
 
         nop = function(){},
 
-        sum = null, //foldl(op["+"], 0),
+        sum = foldl(op["+"], 0),// TODO: change to allow a getvalue function parameter
 
         max = function(list){
+            // TODO: change to allow a getvalue function parameter
+            // NOTE: allow the getval function to be a string -> prop name
             return Math.max.apply(null, list);
         },
 
@@ -313,7 +339,16 @@
             //TODO: handle both strings and arrays???
             //TODO: should/could this be variadic?
         },
+        deepEquals = curry(function(a, b){
+            if (a === b) return true;
+            if (a == null || b == null) return false;
+            if (a.length != b.length) return false;
 
+            for (var i = 0; i < a.length; ++i) {
+                if (a[i] !== b[i]) return false;
+            }
+            return true;
+        }),
 
 
 
@@ -389,7 +424,14 @@
                 map: map,
                 first: first,
                 firstWhere: firstWhere,
+                count: count,
+                countWhere: countWhere,
                 filter: filter,
+                where: filter,
+                some: some,
+                any: some,
+                every: every,
+                all: every,
                 fold: foldl,
                 reduce: foldl,
                 foldl: foldl,
@@ -399,11 +441,16 @@
                 foldRight: foldr,
                 reduceRight: foldr,
                 sort: sort,
+                sum: sum,
+                reverse: reverse,
+                flatten: flatten,
 
                 prop: prop,
                 dot: prop,
                 pluck: pluck,
 
+
+                deepEquals: deepEquals,
 
 
 
