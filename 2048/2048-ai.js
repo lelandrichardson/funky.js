@@ -1,66 +1,54 @@
-
-
-var _onCells = function(fn){
-    return function(){
-        return fn.apply(this, toArray(arguments).concat(this.cells));
-    };
+//+ int -> int
+var realValue = function(x) {
+    return x === 0 ? 0 : Math.log(x) / Math.log(2);
 };
 
-var
-    // Number -> Number
-    realValue = function(x){
-        return x === 0 ? 0 : Math.log(x) / Math.log(2);
-    },
+var vectors = {
+    0: { x: 0,  y: -1 }, // up
+    1: { x: 1,  y: 0 },  // right
+    2: { x: 0,  y: 1 },  // down
+    3: { x: -1, y: 0 }   // left
+};
 
-    vectors = {
-        0: { x: 0,  y: -1 }, // up
-        1: { x: 1,  y: 0 },  // right
-        2: { x: 0,  y: 1 },  // down
-        3: { x: -1, y: 0 }   // left
-    },
+//+ [int] -> int
+var monotonicity = function (row){
+    if(!row || row.length < 2) return true; // 0 or 1 elements. has to be monotonic.
 
-    // [Number] -> boolean
-    monotonic = function(row){
-        if(!row || row.length < 2) return true; // 0 or 1 elements. has to be monotonic.
+    var a = row[0],
+        b = firstWhere(op["!=="](a), row) ,
+        up = b - a > 0,
+        last;
 
-        var a = row[0],
-            b = firstWhere(op["!=="](a), row) ,
-            up = b - a > 0,
-            last;
+    if(isUndefined(b)) return 0; // the whole list is a single value
 
-        if(isUndefined(b)) return true; // the whole list is a single value
-
-        return every(function(val){
-            last = a; a = val;
-            return up ? val >= last : val <= last;
-        }, row);
-    },
-
-    monotonicity = function(row){
-        if(!row || row.length < 2) return true; // 0 or 1 elements. has to be monotonic.
-
-        var a = row[0],
-            b = firstWhere(op["!=="](a), row) ,
-            up = b - a > 0,
-            last;
-
-        if(isUndefined(b)) return 0; // the whole list is a single value
-
-        return reduce(function(score, val){
-            last = a; a = val;
-            return score + (up ? realValue(val) - last : last - realValue(val));
-        }, 0, row);
-    }
-;
+    return reduce(function(score, val){
+        last = a; a = val;
+        return score + (up ? realValue(val) - last : last - realValue(val));
+    }, 0, row);
+};
 
 
 extend(Game.prototype, {
+
+    weight_smooth: 0.1,
+    weight_monotonicity: 1.0,
+    weight_empty: 2.7,
+    weight_max: 1.0,
+
+    evaluate: function() {
+        return this.smooth2() * this.weight_smooth
+            + this.mono2() * this.weight_monotonicity
+            + Math.log(this.emptyCells()) * this.weight_empty
+            + realValue(this.maxValue()) * this.weight_max;
+    },
+
     clone: function(){
         return new Game(this.cells.slice(0));
     },
+
     smoothness: function(){
         var self = this;
-        return reduce(function(smoothness, val, i){
+        return this.fold(function(smoothness, val, i){
             if( val > 0 ) {
                 var value = realValue(val),
                     r = positionFor(i),
@@ -75,8 +63,9 @@ extend(Game.prototype, {
                 )(neighbors);
             }
             return smoothness;
-        }, 0, this.cells);
+        }, 0);
     },
+
     monotonicity: function(){
         var rows = flatten([
             cellsToRows(directions.RIGHT, this.cells),
@@ -106,6 +95,7 @@ extend(Game.prototype, {
         }
         return smoothness;
     },
+
     findFarthestPosition: function(position, vector){
         var previous,
             r = position;
@@ -121,7 +111,6 @@ extend(Game.prototype, {
             next: r // Used to check if a merge is required
         };
     },
-
 
     mono2: function() {
         // scores for all four directions
@@ -216,27 +205,17 @@ extend(Game.prototype, {
         return islands;
     },
 
-
     emptyCells: function(){
         return countWhere(falsy, this.cells);
     },
 
     maxValue: function(){
         return max(this.cells);
-    },
-
-    weight_smooth: 0.1,
-    weight_monotonicity: 1.0,
-    weight_empty: 2.7,
-    weight_max: 1.0,
-
-    evaluate: function() {
-        return this.smooth2() * this.weight_smooth
-            + this.mono2() * this.weight_monotonicity
-            + Math.log(this.emptyCells()) * this.weight_empty
-            + realValue(this.maxValue()) * this.weight_max;
     }
+
 });
+
+
 
 
 
@@ -355,4 +334,5 @@ extend(Solver.prototype,{
 
         return { move: bestMove, score: bestScore, positions: positions, cutoffs: cutoffs };
     }
+
 });

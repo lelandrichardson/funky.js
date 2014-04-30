@@ -26,6 +26,19 @@ expectOutput(transformRow, [4,2,4,0], [0,4,2,4]);
 expectOutput(transformRow, [4,2,2,0], [0,0,4,4]);
 
 
+//var input = [
+//    0,  1,  2,  3,
+//    4,  5,  6,  7,
+//    8,  9, 10, 11,
+//    12, 13, 14, 15
+//];
+//["UP","DOWN","RIGHT","LEFT"].forEach(function(direction){
+//    console.log(direction + ":");
+//    expectEqual( rowsToCells(direction, cellsToRows(traversals[direction], input)),input);
+//});
+//
+
+
 
 
 
