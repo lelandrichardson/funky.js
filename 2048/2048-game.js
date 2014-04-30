@@ -267,7 +267,7 @@ extend(GameManager.prototype, {
     },
 
     updateUI: function(){
-        updateUI(this.game);
+        updateUI(this);
     },
 
     solve: function() {
@@ -279,6 +279,7 @@ extend(GameManager.prototype, {
         }
         var thinkAndMove = function (){
             if(self.game.isGameOver() || self.game.isGameWon()) {
+                self.solveTimeout = null;
                 return;
             }
             var solver = new Solver(self.game);
@@ -339,9 +340,14 @@ var
     }()),
     updateUI = (function(){
         var $gameOver = $(".game-over");
-        return function(game){
-            updateCells(game.cells);
-            game.isGameOver() ? $gameOver.show() : $gameOver.hide();
+        var $gameWon = $(".game-won");
+        var $solve = $(".solve");
+        return function(manager){
+            updateCells(manager.game.cells);
+            manager.game.isGameOver() ? $gameOver.show() : $gameOver.hide();
+            manager.game.isGameWon() ? $gameWon.show() : $gameWon.hide();
+
+            $solve.text(manager.solveTimeout ? "STOP" : "SOLVE")
         };
     }());
 

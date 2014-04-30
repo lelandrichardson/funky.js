@@ -6,8 +6,12 @@ html, body {
     padding: 0;
     background-color:#faf8ef;
     font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+    font-size: 18px;
+    color: #776e65;
+    line-height: 36px;
+    text-align: center;
 }
-.game-over,
+.screen,
 .game-container {
   position: absolute;
   top: 50%;
@@ -19,26 +23,32 @@ html, body {
   border-radius: 6px;
 }
 
-.game-over {
+.screen {
     display: none;
     font-size: 55px;
     font-weight: bold;
+    text-align: center;
+    line-height: @boardSize;
+}
+.game-over {
     background-color: rgb(206,47,40);
     background-color: rgba(206, 47, 40, 0.55);
     color: #3c3c3c;
-    text-align: center;
-    line-height: @boardSize;
+}
+.game-won {
+    background-color: rgb(237, 194, 46);
+    background-color: rgba(237, 194, 46, 0.5);
+    color: #f9f6f2;
 }
 .game-container {
     background-color: #bbada0;
 }
-
 .controls {
   position: absolute;
   top: 50%;
   left: 50%;
   margin-left: -(@boardSize / 2);
-  margin-top: -((@boardSize / 2) + 65px);
+  margin-top: -((@boardSize / 2) + 100px);
   width: @boardSize;
 }
 .btn {
@@ -84,10 +94,10 @@ html, body {
 
 .v-cell(@background, @foreground, @fontSize, @number) {
   background-color: @background;
-  color: @foreground;
   &::before {
     content: @number;
     font-size: @fontSize;
+    color: @foreground;
   }
 }
 
