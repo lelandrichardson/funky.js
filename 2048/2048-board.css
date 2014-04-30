@@ -9,13 +9,18 @@ body {
   line-height: 36px;
   text-align: center;
 }
-.screen,
 .game-container {
   position: absolute;
   top: 50%;
   left: 50%;
   margin-left: -250px;
-  margin-top: -250px;
+  margin-top: -300px;
+  width: 500px;
+  height: 600px;
+  border-radius: 6px;
+}
+.screen,
+.board {
   width: 500px;
   height: 500px;
   border-radius: 6px;
@@ -37,16 +42,12 @@ body {
   background-color: rgba(237, 194, 46, 0.5);
   color: #f9f6f2;
 }
-.game-container {
+.board {
   background-color: #bbada0;
 }
 .controls {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin-left: -250px;
-  margin-top: -350px;
   width: 500px;
+  height: 100px;
 }
 .btn {
   float: left;
@@ -63,6 +64,8 @@ body {
   font-weight: bold;
   color: #444;
   -webkit-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
   user-select: none;
 }
 .btn:hover {

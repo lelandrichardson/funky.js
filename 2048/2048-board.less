@@ -1,56 +1,65 @@
 @boardSize: 500px;
+@controlsHeight: 100px;
 @cellSize: 106px;
 
 html, body {
-    margin:0;
-    padding: 0;
-    background-color:#faf8ef;
-    font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
-    font-size: 18px;
-    color: #776e65;
-    line-height: 36px;
-    text-align: center;
+  margin:0;
+  padding: 0;
+  background-color:#faf8ef;
+  font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+  font-size: 18px;
+  color: #776e65;
+  line-height: 36px;
+  text-align: center;
 }
-.screen,
+
 .game-container {
   position: absolute;
   top: 50%;
   left: 50%;
   margin-left: -(@boardSize / 2);
-  margin-top: -(@boardSize / 2);
+  margin-top: -((@boardSize + @controlsHeight) / 2);
+  width: @boardSize;
+  height: @boardSize + @controlsHeight;
+  border-radius: 6px;
+}
+
+.screen,
+.board {
   width: @boardSize;
   height: @boardSize;
   border-radius: 6px;
 }
 
 .screen {
-    display: none;
-    font-size: 55px;
-    font-weight: bold;
-    text-align: center;
-    line-height: @boardSize;
+  display: none;
+  font-size: 55px;
+  font-weight: bold;
+  text-align: center;
+  line-height: @boardSize;
 }
+
 .game-over {
-    background-color: rgb(206,47,40);
-    background-color: rgba(206, 47, 40, 0.55);
-    color: #3c3c3c;
+  background-color: rgb(206,47,40);
+  background-color: rgba(206, 47, 40, 0.55);
+  color: #3c3c3c;
 }
+
 .game-won {
-    background-color: rgb(237, 194, 46);
-    background-color: rgba(237, 194, 46, 0.5);
-    color: #f9f6f2;
+  background-color: rgb(237, 194, 46);
+  background-color: rgba(237, 194, 46, 0.5);
+  color: #f9f6f2;
 }
-.game-container {
-    background-color: #bbada0;
+
+.board {
+  background-color: #bbada0;
 }
+
 .controls {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin-left: -(@boardSize / 2);
-  margin-top: -((@boardSize / 2) + 100px);
   width: @boardSize;
+  height: @controlsHeight;
 }
+
 .btn {
   float: left;
   height:50px;
@@ -66,6 +75,8 @@ html, body {
   font-weight: bold;
   color: #444;
   -webkit-user-select: none;
+  -moz-user-select: none;
+  -o-user-select: none;
   user-select:none;
 
   &:hover {
@@ -73,23 +84,22 @@ html, body {
   }
 }
 
-
 .cell {
-    background-color:#CCC0B3;
-    width: @cellSize;
-    height:@cellSize;
-    float:left;
-    margin: 15px 0 0 15px;
-    border-radius: 4px;
-    &::before {
-        font-size: 55px;
-        text-align: center;
-        font-weight: bold;
-        width: @cellSize;
-        line-height: @cellSize;
-        color: #776e65;
-        display: inline-block;
-    }
+  background-color:#CCC0B3;
+  width: @cellSize;
+  height:@cellSize;
+  float:left;
+  margin: 15px 0 0 15px;
+  border-radius: 4px;
+  &::before {
+      font-size: 55px;
+      text-align: center;
+      font-weight: bold;
+      width: @cellSize;
+      line-height: @cellSize;
+      color: #776e65;
+      display: inline-block;
+  }
 }
 
 .v-cell(@background, @foreground, @fontSize, @number) {
