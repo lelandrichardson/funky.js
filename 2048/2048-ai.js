@@ -219,6 +219,35 @@ extend(Game.prototype, {
 
 
 
+extend(
+GameManager.prototype, {
+
+    solve: function() {
+        var self = this;
+        if(self.solveTimeout) {
+            clearTimeout(self.solveTimeout);
+            self.solveTimeout = null;
+            return;
+        }
+        function thinkAndMove (){
+            if(self.game.isGameOver() || self.game.isGameWon()) {
+                self.solveTimeout = null;
+                return;
+            }
+            var solver = new Solver(self.game);
+            var bestMove = solver.iterativeDeep();
+            self.move(bestMove.move);
+            self.solveTimeout = setTimeout(thinkAndMove, 0)
+        }
+
+        self.solveTimeout = setTimeout(thinkAndMove, 0);
+    }
+
+});
+
+
+
+
 function Solver(game, isOpponent){
     this.game = game;
     this.isOpponent = !!isOpponent;
@@ -226,7 +255,7 @@ function Solver(game, isOpponent){
 
 extend(Solver.prototype,{
 
-    searchTime: 50,
+    searchTime: 100,
 
     iterativeDeep: function(){
         var start = (new Date()).getTime();
@@ -289,7 +318,8 @@ extend(Solver.prototype,{
             }
         }
 
-        else { // computer's turn, we'll do heavy pruning to keep the branching factor low
+        else {
+            // "computer"'s turn, we'll do heavy pruning to keep the branching factor low
             bestScore = beta;
 
             // try a 2 and 4 in each cell and measure how annoying it is

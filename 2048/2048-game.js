@@ -59,15 +59,16 @@ var traversals = {
 
 // this function takes a 16-length array, and converts it into an array of arrays
 // where each child array represents a "row" to be transformed in a move
-// NOTE: this function seems hard to understand. would be good to
+// NOTE: this function seems hard to understand as is. I would like to clean up, but
+//       can't see a clear path to do so.
 //+ cellsToRows :: direction -> [int] -> [[int]]
 var cellsToRows = curry(function (direction, cells) {
     var traversal = traversals[direction],
         vert = traversal.vertical;
 
-    return reduce(function (result, i){
+    return reduce(function (result,  i) {
         result.push(
-            reduce(function (row, j){
+           reduce(function (row, j){
                 return row.concat(cells[indexFor(vert ? i : j, vert ? j : i)]);
             }, [], traversal.b)
         );
@@ -75,6 +76,9 @@ var cellsToRows = curry(function (direction, cells) {
     }, [], traversal.a);
 });
 
+// this function is the inverse of `cellsToRows`.
+// NOTE: this function seems hard to understand as is. I would like to clean up, but
+//       can't see a clear path to do so.
 //+ rowsToCells :: direction -> [[int]] -> [int]
 var rowsToCells = curry(function (dir, rows) {
     switch(dir){
@@ -104,6 +108,7 @@ var transformRow = function(row){
         result[i] = row[j];
         row[j] = 0;
         if( result[i + 1] === result[i] && !lastWasMerged) {
+            // "merge" the two cells
             result[i + 1] = 2 * result[i+1];
             result[i] = 0;
             i++; // i gets pushed up by 1 here
@@ -114,13 +119,15 @@ var transformRow = function(row){
     }
     return result;
 };
+//test(transformRow, [2,2,4,4], [0,0,4,8]);
 
-//+ string -> [int] -> [int]
+
+//+ move :: direction -> [int] -> [int]
 var move = function(direction) {
     return compose(rowsToCells(direction), map(transformRow), cellsToRows(direction));
 };
 
-//+ () -> Number
+//+ randomCellValue :: -> Number
 var randomCellValue = function() {
     return Math.random() < 0.9 ? 2 : 4;
 };
@@ -135,75 +142,68 @@ function Game(cells) {
     this.cells = cells || emptyGrid();
 }
 
-extend(Game.prototype, {
+Game.prototype.map = function(fn){
+    return map(fn, this.cells);
+};
 
-    map: function(fn){
-        return map(fn, this.cells);
-    },
+Game.prototype.fold = function(fn, base){
+    return fold(fn, base, this.cells);
+};
 
-    fold: function(fn, base){
-        return fold(fn, base, this.cells);
-    },
+Game.prototype.initialize = function(){
+    this.addRandomTile();
+    this.addRandomTile();
+};
 
-    initialize: function(){
-        this.addRandomTile();
-        this.addRandomTile();
-    },
+Game.prototype.valueAt = function(x, y){
+    return this.cells[indexFor(x,y)];
+};
 
-    valueAt: function(x, y){
-        return this.cells[indexFor(x,y)];
-    },
+Game.prototype.availableCells = function availableCells() {
+    // NOTE: it seems like filter() should work here, but doesn't
+    //       because we need the index (i), not the value (v)
+    return this.fold(function(base, val, i){
+        if(val === 0) base.push(i);
+        return base;
+    }, []);
+};
 
-    isOccupied: function (x, y){
-        return this.cells[indexFor(x,y)] !== 0;
-    },
+Game.prototype.mergesArePossible = function(){
+    var self = this;
+    return some(function(val, idx){
+        if(!val) return;
+        var p = positionFor(idx);
+        return self.valueAt( p.x+1 , p.y   ) === val ||
+               self.valueAt( p.x-1 , p.y   ) === val ||
+               self.valueAt( p.x   , p.y+1 ) === val ||
+               self.valueAt( p.x   , p.y-1 ) === val ;
+    }, this.cells);
+};
 
-    availableCells: function availableCells() {
-        // NOTE: it seems like filter() should work here, but doesn't
-        //       because we need the index (i), not the value (v)
-        return this.fold(function(base, val, i){
-            if(val === 0) base.push(i);
-            return base;
-        }, []);
-    },
+Game.prototype.randomAvailableIndex = function(){
+    var available = this.availableCells(),
+        idx = Math.floor(Math.random() * available.length);
+    return available[idx];
+};
 
-    mergesArePossible: function(){
-        var self = this;
-        return some(function(val, idx){
-            if(!val) return;
-            var p = positionFor(idx);
-            return self.valueAt( p.x+1 , p.y   ) === val ||
-                   self.valueAt( p.x-1 , p.y   ) === val ||
-                   self.valueAt( p.x   , p.y+1 ) === val ||
-                   self.valueAt( p.x   , p.y-1 ) === val ;
-        }, this.cells);
-    },
+Game.prototype.isGameOver = function (){
+    return this.availableCells().length === 0 && !this.mergesArePossible();
+};
 
-    randomAvailableIndex: function(){
-        var available = this.availableCells(),
-            idx = Math.floor(Math.random() * available.length);
-        return available[idx];
-    },
+Game.prototype.isGameWon = function (){
+    return this.cells.indexOf(2048) !== -1;
+};
 
-    isGameOver: function isGameOver(){
-        return this.availableCells().length === 0 && !this.mergesArePossible();
-    },
+Game.prototype.addRandomTile = function() {
+    if(this.isGameOver()) return;
+    this.cells[this.randomAvailableIndex()] = randomCellValue();
+};
 
-    isGameWon: function isGameWon(){
-        return this.cells.indexOf(2048) !== -1;
-    },
-
-    addRandomTile: function() {
-        if(this.isGameOver()) return;
-        this.cells[this.randomAvailableIndex()] = randomCellValue();
-    },
-
-    move: function(direction){
-        var next = new Game(move(direction)(this.cells));
-        if (deepEquals(this.cells, next.cells)) return null;
-        return next;
-    }
-});
+Game.prototype.move = function(direction){
+    var next = new Game(move(direction)(this.cells));
+    if (deepEquals(this.cells, next.cells)) return null;
+    return next;
+};
 
 
 
@@ -221,49 +221,24 @@ function GameManager(updateUI) {
     this.restart();
 }
 
-extend(GameManager.prototype, {
+GameManager.prototype.restart = function() {
+    this.history = [];
+    this.game = new Game();
+    this.game.initialize();
+    this.updateUI();
+};
 
-    restart: function() {
-        this.history = [];
-        this.game = new Game();
-        this.game.initialize();
-        this.updateUI();
-    },
+GameManager.prototype.undo = function() {
+    if (this.history.length === 0) return;
+    this.game = this.history.pop();
+    this.updateUI();
+};
 
-    undo: function() {
-        if (this.history.length === 0) return;
-        this.game = this.history.pop();
-        this.updateUI();
-    },
-
-    move: function(direction){
-        var next = this.game.move(direction);
-        if (next === null) return;
-        this.history.push(this.game);
-        this.game = next;
-        next.addRandomTile();
-        this.updateUI();
-    },
-
-    solve: function() {
-        var self = this;
-        if(self.solveTimeout) {
-            clearTimeout(self.solveTimeout);
-            self.solveTimeout = null;
-            return;
-        }
-        function thinkAndMove (){
-            if(self.game.isGameOver() || self.game.isGameWon()) {
-                self.solveTimeout = null;
-                return;
-            }
-            var solver = new Solver(self.game);
-            var bestMove = solver.iterativeDeep();
-            self.move(bestMove.move);
-            self.solveTimeout = setTimeout(thinkAndMove, 0)
-        }
-
-        self.solveTimeout = setTimeout(thinkAndMove, 0);
-    }
-
-});
+GameManager.prototype.move = function(direction){
+    var next = this.game.move(direction);
+    if (next === null) return;
+    this.history.push(this.game);
+    this.game = next;
+    next.addRandomTile();
+    this.updateUI();
+};

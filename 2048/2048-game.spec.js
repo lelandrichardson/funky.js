@@ -50,7 +50,7 @@ var board =  [
     4, 4, 0, 0
 ];
 
-expectEqual(moveRight(board),[
+expectEqual(move(directions.RIGHT)(board),[
     0, 0, 4, 4,
     2, 4, 8, 16,
     0, 0, 0, 16,
