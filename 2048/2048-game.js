@@ -7,26 +7,30 @@
     12  13  14  15
  */
 
+// the size of the board. Note: right now, this constant is used wherever practical,
+// but I do believe changing this to something other than 4 will break a couple of things.
 var size = 4;
 
 // returns the 0-based index for the board's x,y position
-//+ int, int -> int
-var indexFor = function(x, y){
+// returns -1 if index outside of expected range.
+// x,y indices are 1-based.
+//+ indexFor :: int, int -> int
+var indexFor = function (x, y) {
     if(x > size || y > size || x < 1 || y < 1) return -1;
     return (y - 1) * size + (x - 1);
 };
 
 // returns the x,y coordinates from the array's 0-based index
-//+ int -> { x:int, y:int }
-var positionFor = function(i){
+//+ positionFor :: int -> { x:int, y:int }
+var positionFor = function (i) {
     return {
         x: (i % size) + 1,
         y: Math.floor(i / size) + 1
     };
 };
 
-//+ () -> [int]
-var emptyGrid = function() {
+//+ emptyGrid :: -> [int]
+var emptyGrid = function () {
     return [
         0, 0, 0, 0,
         0, 0, 0, 0,
@@ -35,6 +39,7 @@ var emptyGrid = function() {
     ];
 };
 
+// an enumeration of the 4 different directions.
 var directions = {
     UP:    "UP",
     RIGHT: "RIGHT",
@@ -42,6 +47,8 @@ var directions = {
     LEFT:  "LEFT"
 };
 
+// a lookup of useful properties of each direction.
+// NOTE: looking for a way to clean this up.
 var traversals = {
     UP:    { a: [1,2,3,4], b: [4,3,2,1], vertical: true, dir: "UP" },
     RIGHT: { a: [1,2,3,4], b: [1,2,3,4], vertical: false, dir: "RIGHT"},
@@ -49,13 +56,18 @@ var traversals = {
     LEFT:  { a: [1,2,3,4], b: [4,3,2,1], vertical: false, dir: "LEFT" }
 };
 
-//+ direction -> [int] -> [[int]]
-var cellsToRows = curry(function(direction, cells){
+
+// this function takes a 16-length array, and converts it into an array of arrays
+// where each child array represents a "row" to be transformed in a move
+// NOTE: this function seems hard to understand. would be good to
+//+ cellsToRows :: direction -> [int] -> [[int]]
+var cellsToRows = curry(function (direction, cells) {
     var traversal = traversals[direction],
         vert = traversal.vertical;
-    return reduce(function(result, i){
+
+    return reduce(function (result, i){
         result.push(
-            reduce(function(row, j){
+            reduce(function (row, j){
                 return row.concat(cells[indexFor(vert ? i : j, vert ? j : i)]);
             }, [], traversal.b)
         );
@@ -63,8 +75,8 @@ var cellsToRows = curry(function(direction, cells){
     }, [], traversal.a);
 });
 
-//+ direction -> [[int]] -> [int]
-var rowsToCells = curry(function(dir, rows){
+//+ rowsToCells :: direction -> [[int]] -> [int]
+var rowsToCells = curry(function (dir, rows) {
     switch(dir){
         case directions.UP:
             return reverse(flatten(map(function(row, i){ return reverse(pluck(i, rows));}, rows)));
@@ -78,7 +90,7 @@ var rowsToCells = curry(function(dir, rows){
 });
 
 // applies "gravity" to an array of numbers, from left to right, and merges them where appropriate
-//+ [int] -> [int]
+//+ transformRow :: [int] -> [int]
 var transformRow = function(row){
     var result = [0, 0, 0, 0],
         i = size,
