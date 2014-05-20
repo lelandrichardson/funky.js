@@ -46,6 +46,17 @@ extend(Game.prototype, {
         return new Game(this.cells.slice(0));
     },
 
+    // takes fn(value, index, x-pos, y-pos);
+    eachPosition: function(fn) {
+        var x, y, i;
+        for (x = 1; x <= size; x++) {
+            for (y = 1; y <= size; y++) {
+                i = indexFor(x,y);
+                fn.call(this, this.cells[i], i, x, y)
+            }
+        }
+    },
+
     smoothness: function(){
         var self = this;
         return this.fold(function(smoothness, val, i){
@@ -66,33 +77,30 @@ extend(Game.prototype, {
         }, 0);
     },
 
-    monotonicity: function(){
-        var rows = flatten([
-            cellsToRows(directions.RIGHT, this.cells),
-            cellsToRows(directions.DOWN, this.cells)
-        ]);
-
-        return sum(map(monotonicity)(rows));
-    },
+//    monotonicity: function(){
+//        var rows = flatten([
+//            cellsToRows(directions.RIGHT, this.cells),
+//            cellsToRows(directions.DOWN, this.cells)
+//        ]);
+//
+//        return sum(map(monotonicity)(rows));
+//    },
 
     smooth2: function() {
         var smoothness = 0;
-        for (var x=1; x<=4; x++) {
-            for (var y=1; y<=4; y++) {
-                if ( this.valueAt(x, y) ) {
-                    var value = realValue(this.valueAt(x, y));
-                    for (var direction=1; direction<=2; direction++) {
-                        var vector = vectors[direction];
-                        var targetPosition = this.findFarthestPosition({x: x, y: y}, vector).next;
 
-                        var target = this.valueAt(targetPosition.x, targetPosition.y)
-                        if (target) {
-                            smoothness -= Math.abs(value - realValue(target));
-                        }
-                    }
+        this.eachPosition(function(value, i, x, y) {
+            for (var direction=1; direction<=2; direction++) {
+                var vector = vectors[direction];
+                var targetPosition = this.findFarthestPosition({x: x, y: y}, vector).next;
+
+                var target = this.valueAt(targetPosition.x, targetPosition.y)
+                if (target) {
+                    smoothness -= Math.abs(value - realValue(target));
                 }
             }
-        }
+        });
+
         return smoothness;
     },
 
@@ -168,14 +176,14 @@ extend(Game.prototype, {
 
     islands: function() {
         var self = this;
-        var direction, x, y, i;
+        var direction, x, y;
         var marks =  new Array(size*size);
         var mark = function(i, x, y, value) {
-            if ( x >= 1 && x <= 4 && y >= 1 && y <= 4 &&
+            if ( x >= 1 && x <= 4 && y >= 1 && y <= 4 && // TODO: line might not be needed?
                 self.cells[i] === value && !marks[i] ) {
                 marks[i] = true;
 
-                for (direction in [0,1,2,3]) {
+                for (direction in [0,1,2,3]) { // TODO: maybe some function that iterates over vectors?
                     var vector = vectors[direction];
                     mark(indexFor(x + vector.x, y + vector.y), x + vector.x, y + vector.y, value);
                 }
@@ -183,24 +191,15 @@ extend(Game.prototype, {
         };
 
         var islands = 0;
-
-        for (x=1; x<=4; x++) {
-            for (y=1; y<=4; y++) {
-                i = indexFor(x,y);
-                if (this.cells[i]) {
-                    marks[i] = false
-                }
+        this.eachPosition(function(value, i) {
+            if (value) marks[i] = false;
+        });
+        this.eachPosition(function(value, i) {
+            if (value && !marks[i]) {
+                islands++;
+                mark(i, x, y, value);
             }
-        }
-        for (x=1; x<=4; x++) {
-            for (y=1; y<=4; y++) {
-                i = indexFor(x,y);
-                if (this.cells[i] && !marks[i]) {
-                    islands++;
-                    mark(indexFor(x,y), {x:x, y:y}, this.cells[i]);
-                }
-            }
-        }
+        });
 
         return islands;
     },
@@ -275,7 +274,7 @@ extend(Solver.prototype,{
         return best;
     },
 
-    search: function(depth, alpha, beta, positions, cutoffs) {
+    search2: function(depth, alpha, beta, positions, cutoffs) {
 
         var bestMove = -1,
             bestScore,
@@ -286,6 +285,7 @@ extend(Solver.prototype,{
         // the maxing player
         if (!this.isOpponent) {
             bestScore = alpha;
+
             for (var direction in directions) {
                 next = this.game.move(direction);
                 if(next === null) continue; // move isn't possible
@@ -294,7 +294,7 @@ extend(Solver.prototype,{
                     return { move: direction, score: 10000, positions: positions, cutoffs: cutoffs };
                 }
 
-                solver = new Solver(next, !this.isOpponent);
+                solver = new Solver(next, true);
 
                 if (depth === 0) {
                     result = { move: direction, score: next.evaluate() };
@@ -337,7 +337,97 @@ extend(Solver.prototype,{
             }
 
             // now just pick out the most annoying moves
-            var allScores = flatten(scores[2], scores[4])
+            var allScores = flatten(scores[2], scores[4]);
+            var maxScore = max(pluck('score', allScores));
+            var candidates = where(function(x){return x.score === maxScore;}, allScores);
+
+            // search on each candidate
+            for (var i=0; i<candidates.length; i++) {
+                var c = candidates[i];
+                next = this.game.clone();
+                next.cells[c.i] = c.val;
+                positions++;
+                solver = new Solver(next, false);
+                result = solver.search(depth, alpha, bestScore, positions, cutoffs);
+                positions = result.positions;
+                cutoffs = result.cutoffs;
+
+                if (result.score < bestScore) {
+                    bestScore = result.score;
+                }
+                if (bestScore < alpha) {
+                    cutoffs++;
+                    return { move: null, score: alpha, positions: positions, cutoffs: cutoffs };
+                }
+            }
+        }
+
+        return { move: bestMove, score: bestScore, positions: positions, cutoffs: cutoffs };
+    },
+
+    search: function(depth, alpha, beta, positions, cutoffs) {
+
+        var bestMove = -1,
+            bestScore,
+            result,
+            next,
+            solver;
+
+        // the maxing player
+        if (!this.isOpponent) {
+            bestScore = alpha;
+            for (var direction in directions) {
+                next = this.game.move(direction);
+                if(next === null) continue; // move isn't possible
+                positions++;
+                if (next.isGameWon()) {
+                    return { move: direction, score: 10000, positions: positions, cutoffs: cutoffs };
+                }
+
+                solver = new Solver(next, true);
+
+                if (depth === 0) {
+                    result = { move: direction, score: next.evaluate() };
+                } else {
+                    result = solver.search(depth-1, bestScore, beta, positions, cutoffs);
+                    if (result.score > 9900) { // win
+                        result.score--; // to slightly penalize higher depth from win
+                    }
+                    positions = result.positions;
+                    cutoffs = result.cutoffs;
+                }
+
+                if (result.score > bestScore) {
+                    bestScore = result.score;
+                    bestMove = direction;
+                }
+                if (bestScore > beta) {
+                    cutoffs++;
+                    return { move: bestMove, score: beta, positions: positions, cutoffs: cutoffs };
+                }
+            }
+        }
+
+        else {
+            // "computer"'s turn, we'll do heavy pruning to keep the branching factor low
+            bestScore = beta;
+
+            // try a 2 and 4 in each cell and measure how annoying it is
+            // with metrics from eval
+            var cells = this.game.availableCells();
+            var scores = { 2: [], 4: [] };
+
+            for (var value = 2; value <=4; value+=2) {
+                for (var k = 0; k < cells.length; k++) {
+                    i = cells[k];
+                    this.game.cells[i] = value;
+                    scores[value].push({i: i, val: value, score: -this.game.smooth2() + this.game.islands()});
+                    this.game.cells[i] = 0;
+                }
+            }
+
+            // now just pick out the most annoying moves
+            var allScores = flatten(scores[2], scores[4]);
             var maxScore = max(pluck('score', allScores));
             var candidates = where(function(x){return x.score === maxScore;}, allScores);
 
